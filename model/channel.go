@@ -13,6 +13,7 @@ const (
 	TypeLark              = "lark"
 	TypeDing              = "ding"
 	TypeTelegram          = "telegram"
+	TypeQQBot             = "qqbot"
 	TypeDiscord           = "discord"
 	TypeBark              = "bark"
 	TypeClient            = "client"

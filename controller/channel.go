@@ -6,6 +6,8 @@ import (
 	"message-pusher/model"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -224,4 +226,43 @@ func UpdateChannel(c *gin.Context) {
 		"data":    cleanChannel,
 	})
 	return
+}
+
+func DetectQQBotOpenID(c *gin.Context) {
+	var req struct {
+		AppID        string `json:"app_id"`
+		ClientSecret string `json:"secret"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	req.AppID = strings.TrimSpace(req.AppID)
+	req.ClientSecret = strings.TrimSpace(req.ClientSecret)
+	if req.AppID == "" || req.ClientSecret == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "请先填写 APP_ID 和 CLIENT_SECRET",
+		})
+		return
+	}
+
+	result, err := channel.WaitForQQBotOpenID(req.AppID, req.ClientSecret, 10*time.Minute)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "OPENID 获取成功",
+		"data":    result,
+	})
 }

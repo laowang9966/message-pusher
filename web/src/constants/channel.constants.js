@@ -30,6 +30,12 @@ export const CHANNEL_OPTIONS = [
     color: '#29a9ea',
   },
   {
+    key: 'qqbot',
+    text: 'QQ 机器人',
+    value: 'qqbot',
+    color: '#12b7f5',
+  },
+  {
     key: 'discord',
     text: 'Discord 群机器人',
     value: 'discord',

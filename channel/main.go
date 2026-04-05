@@ -25,6 +25,8 @@ func SendMessage(message *model.Message, user *model.User, channel_ *model.Chann
 		return SendClientMessage(message, user, channel_)
 	case model.TypeTelegram:
 		return SendTelegramMessage(message, user, channel_)
+	case model.TypeQQBot:
+		return SendQQBotMessage(message, user, channel_)
 	case model.TypeDiscord:
 		return SendDiscordMessage(message, user, channel_)
 	case model.TypeNone:

@@ -10,6 +10,7 @@ const EditChannel = () => {
   const channelId = params.id;
   const isEditing = channelId !== undefined;
   const [loading, setLoading] = useState(isEditing);
+  const [qqBotDetecting, setQQBotDetecting] = useState(false);
   const originInputs = {
     type: 'none',
     name: '',
@@ -25,8 +26,7 @@ const EditChannel = () => {
   };
 
   const [inputs, setInputs] = useState(originInputs);
-  const { type, name, description, secret, app_id, account_id, url, other } =
-    inputs;
+  const { type, name, description } = inputs;
 
   const handleInputChange = (e, { name, value }) => {
     setInputs((inputs) => ({ ...inputs, [name]: value }));
@@ -47,6 +47,7 @@ const EditChannel = () => {
     }
     setLoading(false);
   };
+
   useEffect(() => {
     if (isEditing) {
       loadChannel().then();
@@ -86,16 +87,14 @@ const EditChannel = () => {
         }
         break;
       case 'custom':
-        // if (!localInputs.url.startsWith('https://')) {
-        //   showError('自定义通道的 URL 必须以 https:// 开头！');
-        //   return;
-        // }
         try {
           JSON.parse(localInputs.other);
         } catch (e) {
           showError('JSON 格式错误：' + e.message);
           return;
         }
+        break;
+      default:
         break;
     }
     if (isEditing) {
@@ -120,7 +119,7 @@ const EditChannel = () => {
   };
 
   const getTelegramChatId = async () => {
-    if (inputs.telegram_bot_token === '') {
+    if (inputs.secret === '') {
       showError('请先输入 Telegram 机器人令牌！');
       return;
     }
@@ -140,6 +139,32 @@ const EditChannel = () => {
       }
     } else {
       showError(`发生错误：${res.description}`);
+    }
+  };
+
+  const detectQQBotOpenID = async () => {
+    if (!inputs.app_id || !inputs.secret) {
+      showError('请先填写 APP_ID 和 CLIENT_SECRET！');
+      return;
+    }
+    setQQBotDetecting(true);
+    try {
+      const res = await API.post('/api/channel/qqbot/detect-openid', {
+        app_id: inputs.app_id,
+        secret: inputs.secret,
+      });
+      const { success, message, data } = res.data;
+      if (!success) {
+        showError(message);
+        return;
+      }
+      const openid = data?.openid || '';
+      setInputs((prev) => ({ ...prev, account_id: openid }));
+      showSuccess('OPENID 获取成功！');
+    } catch (error) {
+      showError(error);
+    } finally {
+      setQQBotDetecting(false);
     }
   };
 
@@ -525,6 +550,57 @@ const EditChannel = () => {
             </Button>
           </>
         );
+      case 'qqbot':
+        return (
+          <>
+            <Message>
+              通过 QQ 官方机器人向单聊用户主动发消息。请先前往
+              <a
+                target='_blank'
+                href='https://q.qq.com/qqbot/openclaw/index.html'
+                rel='noreferrer'
+              >
+                QQ 机器人开放平台
+              </a>
+              获取 APP_ID 和 CLIENT_SECRET。
+              <br />
+              填写后点击下方「自动识别 OPENID」按钮，然后用目标 QQ 用户给你的机器人发送任意一条消息；系统会临时建立 WebSocket 监听，收到用户消息后自动识别 OPENID 并回填输入框。
+              <br />
+              识别成功后会自动关闭 WebSocket；如果 10 分钟内没有收到用户消息，也会自动关闭并恢复正常。
+            </Message>
+            <Form.Group widths={3}>
+              <Form.Input
+                label='APP_ID'
+                name='app_id'
+                onChange={handleInputChange}
+                autoComplete='new-password'
+                value={inputs.app_id}
+                placeholder='在此填写 QQBot 的 APP_ID'
+              />
+              <Form.Input
+                label='CLIENT_SECRET'
+                name='secret'
+                type='password'
+                onChange={handleInputChange}
+                autoComplete='new-password'
+                value={inputs.secret}
+                placeholder='在此填写 QQBot 的 CLIENT_SECRET'
+              />
+              <Form.Input
+                label='OPENID'
+                name='account_id'
+                type='text'
+                onChange={handleInputChange}
+                autoComplete='new-password'
+                value={inputs.account_id}
+                placeholder='自动识别成功后会回填到这里，也可手动填写'
+              />
+            </Form.Group>
+            <Button onClick={detectQQBotOpenID} loading={qqBotDetecting}>
+              自动识别 OPENID
+            </Button>
+          </>
+        );
       case 'discord':
         return (
           <>
@@ -626,7 +702,7 @@ const EditChannel = () => {
               </a>
               。
               <br />
-              需要为应用添加机器人能力：应用能力->添加应用能力—>机器人。
+              需要为应用添加机器人能力：应用能力->添加应用能力->机器人。
               <br />
               需要为应用添加消息发送权限：开发配置->权限管理->权限配置->搜索「获取与发送单聊、群组消息」->开通权限。
               <br />
@@ -738,7 +814,7 @@ const EditChannel = () => {
 
   return (
     <>
-      <Segment loading={loading}>
+      <Segment loading={loading || qqBotDetecting}>
         <Header as='h3'>{isEditing ? '更新通道配置' : '新建消息通道'}</Header>
         <Form autoComplete='new-password'>
           <Form.Field>
@@ -790,7 +866,7 @@ const EditChannel = () => {
             }}
           />
           {renderChannelForm()}
-          <Button disabled={type === 'email'} onClick={submit}>
+          <Button disabled={type === 'email' || qqBotDetecting} onClick={submit}>
             提交
           </Button>
         </Form>

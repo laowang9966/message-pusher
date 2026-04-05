@@ -73,6 +73,7 @@ func SetApiRouter(router *gin.Engine) {
 			channelRoute.GET("/search", controller.SearchChannels)
 			channelRoute.GET("/:id", controller.GetChannel)
 			channelRoute.POST("/", controller.AddChannel)
+			channelRoute.POST("/qqbot/detect-openid", controller.DetectQQBotOpenID)
 			channelRoute.PUT("/", controller.UpdateChannel)
 			channelRoute.DELETE("/:id", controller.DeleteChannel)
 		}
